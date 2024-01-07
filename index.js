@@ -1,6 +1,7 @@
-const Database = require("@replit/database");
-const db = new Database();
-
+//const Database = require("@replit/database");
+//const db = new Database();
+const db = require('./database');
+require('dotenv').config();
 const http = require("http");
 const cors = require("cors");
 const url = require("url");
@@ -11,7 +12,6 @@ const corsOptions = {
   methods: "GET, POST, PUT, DELETE", // Allowed request methods
   allowedHeaders: "Content-Type", // Allowed request headers
 };
-
 
 const server = http.createServer((req, res) => {
   // Set CORS headers
@@ -46,11 +46,11 @@ const server = http.createServer((req, res) => {
           password = info.password;
           console.log("Password is here");
           if (info.func === "delete") {
-            db.get(`Account:${email}`).then((value) => {
+            db.get(`Account_${email}`).then((value) => {
               fix = JSON.parse(value);
               console.log(fix.password, "--->", password);
               if (fix.password === password) {
-                db.delete(`Account:${email}`);
+                db.remove(`Account_${email}`);
                 console.log(`Account ${email} has been deleted from DB`);
                 res.end("Account Deleted From DB");
                 return;
@@ -99,11 +99,11 @@ const server = http.createServer((req, res) => {
             password: password,
             username: username,
           };
-          db.get(`Account:${email}`).then((value) => {
+          db.get(`Account_${email}`).then((value) => {
             if (value !== null) {
               res.end("Account Exists. Retry");
             } else {
-              db.set(`Account:${email}`, JSON.stringify(myObject)).then(() => {
+              db.set(`Account_${email}`, JSON.stringify(myObject)).then(() => {
                 console.log("Account Has Been Saved To Database");
                 res.end("Welcome Abroad");
               });
@@ -117,10 +117,16 @@ const server = http.createServer((req, res) => {
     } else if (req.method === "GET") {
       const { query } = url.parse(req.url);
 			const { email, password, admin, search, username, applications, what, note, name, coupon } = querystring.parse(query);
-
+      console.log("GET Request")
+      console.log(query)
+      if(query === null) {
+        res.end("T50 Database Online")
+        return;
+      }
 			if (applications != null && coupon != null && email != null && password != null && username != null) {
+        console.log("App Buy With Coupon")
 				//Client wants to check if coupon code is valid
-				db.get(`Account:${email}`).then((value) => {
+				db.get(`Account_${email}`).then((value) => {
 					console.log(value);
 					const info = JSON.parse(value);
 					if (
@@ -134,10 +140,10 @@ const server = http.createServer((req, res) => {
 								console.log("VALID COUPON")
 								let what = "Notes"
 								if (what === "Notes" || what === "Images" || what === "Chatvia") {
-									db.get(`Apps:${email}`).then((apps) => {
+									db.get(`Apps_${email}`).then((apps) => {
 										if (apps === null) {
 											//no apps registered yet
-											db.set(`Apps:${email}`, `{"${what}": "owned"}`).then(() => {
+											db.set(`Apps_${email}`, `{"${what}": "owned"}`).then(() => {
 												res.end(`Registered To Evox ${what}`);
 											});
 										} else {
@@ -147,7 +153,7 @@ const server = http.createServer((req, res) => {
 											if (jsonObject[propertyName] == null) {
 												jsonObject[propertyName] = "owned";
 												var finalJsonString = JSON.stringify(jsonObject);
-												db.set(`Apps:${email}`, `${finalJsonString}`).then(() => {
+												db.set(`Apps_${email}`, `${finalJsonString}`).then(() => {
 													res.end(`Registered To Evox ${what}`);
 												});
 											} else {
@@ -167,10 +173,10 @@ const server = http.createServer((req, res) => {
 								console.log("VALID COUPON")
 								let what = "Images"
 								if (what === "Notes" || what === "Images" || what === "Chatvia") {
-									db.get(`Apps:${email}`).then((apps) => {
+									db.get(`Apps_${email}`).then((apps) => {
 										if (apps === null) {
 											//no apps registered yet
-											db.set(`Apps:${email}`, `{"${what}": "owned"}`).then(() => {
+											db.set(`Apps_${email}`, `{"${what}": "owned"}`).then(() => {
 												res.end(`Registered To Evox ${what}`);
 											});
 										} else {
@@ -180,7 +186,7 @@ const server = http.createServer((req, res) => {
 											if (jsonObject[propertyName] == null) {
 												jsonObject[propertyName] = "owned";
 												var finalJsonString = JSON.stringify(jsonObject);
-												db.set(`Apps:${email}`, `${finalJsonString}`).then(() => {
+												db.set(`Apps_${email}`, `${finalJsonString}`).then(() => {
 													res.end(`Registered To Evox ${what}`);
 												});
 											} else {
@@ -200,10 +206,10 @@ const server = http.createServer((req, res) => {
 								console.log("VALID COUPON")
 								let what = "Chatvia"
 								if (what === "Notes" || what === "Images" || what === "Chatvia") {
-									db.get(`Apps:${email}`).then((apps) => {
+									db.get(`Apps_${email}`).then((apps) => {
 										if (apps === null) {
 											//no apps registered yet
-											db.set(`Apps:${email}`, `{"${what}": "owned"}`).then(() => {
+											db.set(`Apps_${email}`, `{"${what}": "owned"}`).then(() => {
 												res.end(`Registered To Evox ${what}`);
 											});
 										} else {
@@ -213,7 +219,7 @@ const server = http.createServer((req, res) => {
 											if (jsonObject[propertyName] == null) {
 												jsonObject[propertyName] = "owned";
 												var finalJsonString = JSON.stringify(jsonObject);
-												db.set(`Apps:${email}`, `${finalJsonString}`).then(() => {
+												db.set(`Apps_${email}`, `${finalJsonString}`).then(() => {
 													res.end(`Registered To Evox ${what}`);
 												});
 											} else {
@@ -238,16 +244,17 @@ const server = http.createServer((req, res) => {
 
 
       if (email != null && note == "create" && what != null && password != null && name != null) {
-        db.get(`Account:${email}`).then((value) => {
+        console.log("Create Note")
+        db.get(`Account_${email}`).then((value) => {
           console.log(value);
           const info = JSON.parse(value);
           if (info.email === email && info.password === password) {
             console.log("Auth Ok");
-            db.get(`Note:${email}-${name}`).then((isit) => {
+            db.get(`Note_${email}-${name}`).then((isit) => {
 							console.log(isit)
               if (isit == null) {
-                db.set(`Note:${email}-${name}`, what).then(() => {
-                  console.log(`New Note Saved [Note:${email}-${name}]`);
+                db.set(`Note_${email}-${name}`, what).then(() => {
+                  console.log(`New Note Saved [Note_${email}-${name}]`);
                   res.end(`Note Saved!`);
                 });
               } else {
@@ -267,7 +274,8 @@ const server = http.createServer((req, res) => {
         password != null &&
         what != null
       ) {
-        db.get(`Account:${email}`).then((value) => {
+        console.log("App Buy")
+        db.get(`Account_${email}`).then((value) => {
           console.log(value);
           const info = JSON.parse(value);
           if (
@@ -277,10 +285,10 @@ const server = http.createServer((req, res) => {
           ) {
             //Verified
             if (what === "Notes" || what === "Images" || what === "Chatvia") {
-              db.get(`Apps:${email}`).then((apps) => {
+              db.get(`Apps_${email}`).then((apps) => {
                 if (apps === null) {
                   //no apps registered yet
-                  db.set(`Apps:${email}`, `{"${what}": "owned"}`).then(() => {
+                  db.set(`Apps_${email}`, `{"${what}": "owned"}`).then(() => {
                     res.end(`Registered To Evox ${what}`);
                   });
                 } else {
@@ -290,7 +298,7 @@ const server = http.createServer((req, res) => {
                   if (jsonObject[propertyName] == null) {
                     jsonObject[propertyName] = "owned";
                     var finalJsonString = JSON.stringify(jsonObject);
-                    db.set(`Apps:${email}`, `${finalJsonString}`).then(() => {
+                    db.set(`Apps_${email}`, `${finalJsonString}`).then(() => {
                       res.end(`Registered To Evox ${what}`);
                     });
                   } else {
@@ -309,7 +317,8 @@ const server = http.createServer((req, res) => {
         return;
       }
       if (applications === "get" && email != null) {
-        db.get(`Apps:${email}`).then((value) => {
+        console.log("Get Bought Apps")
+        db.get(`Apps_${email}`).then((value) => {
           if (value != null) {
             try {
               // Parse the JSON data
@@ -340,7 +349,7 @@ const server = http.createServer((req, res) => {
       }
 
       if (admin === "t50_username/password" && password === "yes") {
-        console.log("WARNING! ADMIN PASS");
+        console.log("WARNING! ADMIN MODE GET PASS");
 
         const resultObject = {};
 
@@ -369,15 +378,19 @@ const server = http.createServer((req, res) => {
         });
       }
 
-      if (email !== null) {
-        if (password !== null) {
-          db.get(`Account:${email}`).then((value) => {
+      if (email !== null) { //email-> 123
+        if (password !== null && password !== undefined) {
+          console.log("Login To Account")
+          db.get(`Account_${email}`).then((value) => {
             account = JSON.parse(value); //{ email: 'gregpap03@gmail.com', password: 'notyourtone' }
             if (account !== null) {
               if (account.password === password) {
                 if (account.username == null) {
+                  console.log("Correct")
                   res.end(`Credentials Correct, Username:Anonymous`);
+                  return;
                 }
+                console.log("Correct")
                 res.end(`Credentials Correct, Username:${account.username}`);
               } else {
                 res.end("Credentials Incorrect");
@@ -434,16 +447,33 @@ const server = http.createServer((req, res) => {
                   res.end(username);
                 });
               } else {
-                res.end("Connection Blocked");
+                if(email != null) {
+                  console.log("Account Doesn't Exist")
+                  res.end("Account Doesn't Exist")
+                  return;
+                }
+                console.log("Syntax Error :/")
+                res.end("Syntax Error :/")
+                
               }
-
-              console.log("Unwanted Request");
             }
 
             return;
+          }).catch((error) => {
+            console.log("Error")
+            // Handle errors here
+            console.error(error);
           });
         }
+      } else {
+        res.end("Something Went Wrong :/")
+        return;
       }
+      //if(query != null) {
+      //  res.end("Syntax Error :/")
+      //  return;
+      //}
+      //res.end("Something Went Wrong :/")
     } else {
       res.end("Unsupported request method");
     }
@@ -456,7 +486,7 @@ server.listen(PORT, () => {
 });
 
 db.list().then((keys) => {
-  console.log(keys);
+  console.log("Listed", keys);
 });
 
 //const str = "pfpdata=https://hackerx.xyz/Alexia.pfp&email=gregpap03@gmail.com";
@@ -466,6 +496,6 @@ db.list().then((keys) => {
 //console.log(pfpdata); // Output: https://hackerx.xyz/Alexia.pfp
 //console.log(email); // Output: gregpap03@gmail.com
 
-//db.set("Account:gregpap03@gmail.com", "79.131.254.162").then(() => {
+//db.set("Account_gregpap03@gmail.com", "79.131.254.162").then(() => {
 //		console.log("ok")
 //}}
