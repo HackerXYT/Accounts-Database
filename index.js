@@ -6,7 +6,9 @@ const http = require("http");
 const cors = require("cors");
 const url = require("url");
 const querystring = require("querystring");
-
+const fs = require('fs');
+const path = require('path');
+const archiver = require('archiver'); // Add this line
 const corsOptions = {
   origin: "*", // Allow requests from any origin. You can specify a specific origin instead.
   methods: "GET, POST, PUT, DELETE", // Allowed request methods
@@ -116,7 +118,7 @@ const server = http.createServer((req, res) => {
       });
     } else if (req.method === "GET") {
       const { query } = url.parse(req.url);
-			const { email, password, admin, search, username, applications, what, note, name, coupon } = querystring.parse(query);
+			const { email, password, admin, search, username, applications, what, note, name, coupon, method } = querystring.parse(query);
       console.log("GET Request")
       console.log(query)
       if(query === null) {
@@ -241,6 +243,32 @@ const server = http.createServer((req, res) => {
 				})
 				return;
 			}
+      if (method === "download" && password === process.env["dnpasswd"]) { // Add this block for downloading zip
+        const folderPath = "./db/";
+        const zipFileName = "evoxdatabasefiles.zip";
+        const zipFilePath = path.join(__dirname, zipFileName);
+
+        // Create a zip file
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        const output = fs.createWriteStream(zipFilePath);
+
+        archive.pipe(output);
+        archive.directory(folderPath, false);
+        archive.finalize();
+
+        // Wait for the archive to finish
+        output.on('close', () => {
+          console.log('Archive Sent');
+          // Set headers for download
+          res.setHeader('Content-Type', 'application/zip');
+          res.setHeader('Content-Disposition', `attachment; filename=${zipFileName}`);
+          // Stream the file to the client
+          fs.createReadStream(zipFilePath).pipe(res);
+          
+        });
+        return;
+        
+      }
 
 
       if (email != null && note == "create" && what != null && password != null && name != null) {
